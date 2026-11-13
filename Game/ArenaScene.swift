@@ -24,7 +24,7 @@ final class ArenaScene: SKScene {
     private var turretClocks: [TimeInterval] = []
     private var lastTime: TimeInterval = 0
     private var elapsed: TimeInterval = 0
-    private var paused = false
+    private var gamePaused = false
     private let hud = SKLabelNode(fontNamed: "AvenirNext-Bold")
     private let message = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private let field = SKNode()
@@ -146,7 +146,7 @@ final class ArenaScene: SKScene {
         guard lastTime != 0 else { lastTime = currentTime; return }
         let dt = min(max(currentTime - lastTime, 0), 0.1)
         lastTime = currentTime
-        guard !paused, session.status == .playing else { return }
+        guard !gamePaused, session.status == .playing else { return }
         elapsed += dt
         session.tick(at: elapsed)
         let spec = WaveDirector.spec(forWave: session.wave)
@@ -193,11 +193,11 @@ final class ArenaScene: SKScene {
         if names.contains("restart") { restart(); return }
         if names.contains("pause") {
             guard session.status == .playing else { return }
-            paused.toggle()
-            showMessage(paused ? "PAUSED" : "RESUMED", duration: paused ? 0 : 1)
+            gamePaused.toggle()
+            showMessage(gamePaused ? "PAUSED" : "RESUMED", duration: gamePaused ? 0 : 1)
             return
         }
-        guard !paused, session.status == .playing else { return }
+        guard !gamePaused, session.status == .playing else { return }
         if names.contains("tesla") || names.contains("mortar") {
             let kind: TurretKind = names.contains("tesla") ? .monkeyTesla : .bulldogMortar
             showMessage(session.buyTurret(kind) ? "\(kind.name) DEPLOYED!" : "NEED SCRAP OR FREE SLOT")
@@ -220,7 +220,7 @@ final class ArenaScene: SKScene {
         spawnClock = 0
         turretClocks.removeAll()
         elapsed = 0
-        paused = false
+        gamePaused = false
         lastTime = 0
         refreshHUD()
         showMessage("TAP GHOSTS TO SHOOT!", duration: 3)
