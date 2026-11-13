@@ -3,6 +3,9 @@
 
 name: Swift
 
+name: Run Battle Simulator
+run: swift run RiftPatrolSim 20
+
 on:
   push:
     branches: [ "main" ]
