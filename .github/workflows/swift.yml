@@ -1,24 +1,82 @@
-# This workflow will build a Swift project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-swift
-
 name: Swift
 
 on:
   push:
     branches: [ "main" ]
+    paths-ignore: [ "**.md", "docs/**" ]
   pull_request:
     branches: [ "main" ]
+    paths-ignore: [ "**.md", "docs/**" ]
+  workflow_dispatch:
+
+# A new push cancels the older run of the same branch, so runs never pile up in the queue.
+concurrency:
+  group: swift-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
-
-    runs-on: macos-latest
-
+  quick:
+    name: Quick check (Linux, core + battle simulation)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    container: swift:6.0-jammy
     steps:
     - uses: actions/checkout@v4
-    - name: Build
-      run: swift build -v
-    - name: Run tests
-      run: swift test -v
+    - name: Build simulator (core only, no SpriteKit)
+      run: swift build --product RiftPatrolSim
     - name: Run Battle Simulator
       run: swift run RiftPatrolSim 20
+
+  build:
+    name: Mac build, core tests and simulation
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+    - uses: actions/checkout@v4
+    - name: Cache SwiftPM build
+      uses: actions/cache@v4
+      with:
+        path: .build
+        key: spm-${{ runner.os }}-${{ hashFiles('Package.swift', '*.swift', 'Game/**/*.swift') }}
+        restore-keys: spm-${{ runner.os }}-
+    - name: Build
+      run: swift build
+    - name: Run tests
+      run: swift test
+    - name: Run Battle Simulator
+      run: swift run RiftPatrolSim 20
+
+  ios:
+    name: iPhone and iPad simulator build
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+    - uses: actions/checkout@v4
+    - name: Show Xcode version
+      run: xcodebuild -version
+    - name: Cache derived data
+      uses: actions/cache@v4
+      with:
+        path: ${{ runner.temp }}/RiftPatrolBuild
+        key: dd-${{ runner.os }}-${{ hashFiles('RiftPatrol.xcodeproj/project.pbxproj', '*.swift', 'Game/**/*.swift') }}
+        restore-keys: dd-${{ runner.os }}-
+    - name: Build iOS app without signing
+      shell: bash
+      run: |
+        set -o pipefail
+        xcodebuild \
+          -project RiftPatrol.xcodeproj \
+          -scheme RiftPatrol-iOS \
+          -configuration Debug \
+          -destination 'generic/platform=iOS Simulator' \
+          -derivedDataPath "$RUNNER_TEMP/RiftPatrolBuild" \
+          CODE_SIGNING_ALLOWED=NO \
+          COMPILER_INDEX_STORE_ENABLE=NO \
+          build 2>&1 | tee "$RUNNER_TEMP/rift-ios-build.log"
+    - name: Upload iOS build log
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ios-build-log
+        path: ${{ runner.temp }}/rift-ios-build.log
+        if-no-files-found: ignore

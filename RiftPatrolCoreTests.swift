@@ -65,9 +65,48 @@ final class RiftPatrolCoreTests: XCTestCase {
         XCTAssertEqual(v.status, .victory)
     }
 
+    func testSessionDefaultsToTenLevelsAndRepairs() {
+        var s = GameSession()
+        XCTAssertEqual(s.finalWave, LevelCatalog.count)
+        s.damageVan(50)
+        s.completeWave()
+        XCTAssertEqual(s.level, 2)
+        XCTAssertEqual(s.vanHP, 50 + LevelCatalog.repairBetweenLevels)
+        XCTAssertGreaterThan(s.scaledDamage(10), 10)
+    }
+
+    func testCatalogHasTwoLapsOfEveryCategory() {
+        let all = LevelCatalog.all
+        XCTAssertEqual(all.count, 10)
+        for category in LevelCategory.allCases {
+            XCTAssertEqual(all.filter { $0.category == category }.count, 2, "\(category)")
+        }
+        for i in 0..<5 {
+            let first = all[i], second = all[i + 5]
+            XCTAssertEqual(first.category, second.category)
+            XCTAssertGreaterThan(second.hp, first.hp)
+            XCTAssertGreaterThan(second.speed, first.speed)
+            XCTAssertGreaterThan(second.vanDamage, first.vanDamage)
+        }
+        XCTAssertTrue(all[4].hasBoss)
+        XCTAssertTrue(all[9].hasBoss)
+        XCTAssertGreaterThan(all[9].bossHP, all[4].bossHP)
+        XCTAssertTrue(all[9].isFinal)
+        XCTAssertGreaterThan(all[3].zigzag, 0)
+        XCTAssertEqual(LevelCatalog.spec(forLevel: 99), all[9])
+    }
+
     func testSimIsDeterministicAndWinnable() {
         let a = BattleSim.run(seed: 42)
         XCTAssertEqual(a, BattleSim.run(seed: 42))
         XCTAssertTrue(a.won)
+        XCTAssertEqual(a.wavesCleared, LevelCatalog.count)
+    }
+
+    func testFinalLevelIsHardButWinnable() {
+        let reports = (1...20).map { BattleSim.run(seed: UInt64($0)) }
+        let wins = reports.filter(\.won).count
+        XCTAssertGreaterThan(wins, 0, "Level 10 must stay winnable")
+        XCTAssertTrue(reports.allSatisfy { $0.wavesCleared >= 5 }, "Lap one should be beatable")
     }
 }
