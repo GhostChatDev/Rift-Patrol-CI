@@ -13,6 +13,7 @@ final class ArenaScene: SKScene {
     var lastUpdate = 0.0
     var aimAngle = Double.pi / 2
     var firing = false
+    var touchHeld = false
     var waveBreak = 2.0
     let van = SKShapeNode(rectOf: CGSize(width: 70, height: 36), cornerRadius: 8)
     let barrel = SKShapeNode(rectOf: CGSize(width: 6, height: 34), cornerRadius: 3)
@@ -62,6 +63,7 @@ final class ArenaScene: SKScene {
         if hud.handleTap(at: point, scene: self) { return }
         aim(at: point)
         firing = true
+        touchHeld = true
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -69,8 +71,15 @@ final class ArenaScene: SKScene {
         aim(at: touch.location(in: self))
     }
 
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) { firing = false }
-    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) { firing = false }
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        touchHeld = false
+        firing = false
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        touchHeld = false
+        firing = false
+    }
 
     // MARK: Frame loop
 
