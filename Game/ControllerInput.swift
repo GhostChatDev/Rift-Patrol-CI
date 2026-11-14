@@ -80,11 +80,14 @@ final class ControllerInput {
         let trigger = max(CGFloat(pad.rightTrigger.value), pad.buttonA.isPressed ? 1 : 0)
         if trigger > 0.2 { state.firing = true }
 
+        // buttonOptions is optional in GameController; buttonMenu is always present.
+        let optionsDown = pad.buttonOptions?.isPressed ?? false
+
         var mask = 0
         if pad.buttonX.isPressed { mask |= Self.pulseBit }
         if pad.leftShoulder.isPressed { mask |= Self.teslaBit }
         if pad.rightShoulder.isPressed { mask |= Self.mortarBit }
-        if pad.buttonOptions.isPressed || pad.buttonMenu.isPressed { mask |= Self.menuBit }
+        if optionsDown || pad.buttonMenu.isPressed { mask |= Self.menuBit }
         if pad.buttonA.isPressed { mask |= Self.confirmBit }
 
         state.pulse = mask & Self.pulseBit != 0 && previousMask & Self.pulseBit == 0
