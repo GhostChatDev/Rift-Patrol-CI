@@ -59,6 +59,10 @@ final class ArenaScene: SKScene {
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
+        if session.status != .playing {
+            restart()
+            return
+        }
         let point = touch.location(in: self)
         if hud.handleTap(at: point, scene: self) { return }
         aim(at: point)
