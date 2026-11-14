@@ -75,17 +75,18 @@ extension ArenaScene {
     }
 
     func checkLevelCleared() {
-        let spec = session.levelSpec
-        guard spawned >= spec.count, foes.isEmpty else { return }
+        let finished = session.levelSpec
+        guard spawned >= finished.count, foes.isEmpty else { return }
         session.completeWave()
         if session.status == .victory {
             finish()
         } else {
+            // Read the spec again: completeWave() moved to the next level.
+            let next = session.levelSpec
             spawned = 0
             bossSpawned = false
-            spawnClock = 0
             intermission = 3.0
-            spawnClock = spec.spawnInterval
+            spawnClock = next.spawnInterval
             announceLevel()
             sound(.power)
         }
